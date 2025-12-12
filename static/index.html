@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Canary Traffic - Simulate — Showcase Portal</title>
+  <style>
+    /* ---------- THEME & BASE ---------- */
+    :root{
+      --bg: #0f1724;
+      --panel: #07102a;
+      --glass: rgba(255,255,255,0.04);
+      --muted: #94a3b8;
+      --card: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      --accent1: #7c3aed; /* purple */
+      --accent2: #06b6d4; /* teal */
+      --success: #16a34a;
+      --danger: #ef4444;
+      --glass-blur: 10px;
+      color-scheme: dark;
+    }
+
+    html,body{height:100%;margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial;}
+    body{background: radial-gradient(1200px 600px at 10% 10%, rgba(124,58,237,0.12), transparent), radial-gradient(900px 400px at 85% 80%, rgba(6,182,212,0.08), transparent), var(--bg); color:#e6eef8;}
+
+    /* ---------- Layout ---------- */
+    header{padding:36px 36px 24px 36px;display:flex;align-items:center;gap:20px}
+
+    .hero{display:flex;gap:20px;align-items:center;flex:1;}
+    .brand{display:flex;flex-direction:column;gap:6px;}
+    .title{font-size:28px;font-weight:800;letter-spacing:-0.01em}
+    .subtitle{color:var(--muted);font-size:14px}
+
+    /* 3D-ish version badge */
+    .badge-wrap{width:120px;height:70px;display:flex;align-items:center;justify-content:center;perspective:800px}
+    .badge{
+      width:110px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px;color:white;
+      background:linear-gradient(135deg,var(--accent1),var(--accent2));box-shadow:0 20px 60px rgba(6,182,212,0.08), inset 0 -6px 20px rgba(0,0,0,0.25);
+      transform: rotateX(12deg) translateZ(6px);transition:transform .35s cubic-bezier(.2,.9,.2,1), box-shadow .2s;
+    }
+    .badge.glow{box-shadow:0 28px 80px rgba(124,58,237,0.28), 0 0 24px rgba(6,182,212,0.12);transform:rotateX(8deg) translateZ(10px) scale(1.04)}
+
+    /* layout container */
+    .container{max-width:1200px;margin:12px auto 64px;padding:18px;border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));box-shadow:0 40px 100px rgba(2,6,23,0.6)}
+    .grid{display:grid;grid-template-columns: 1fr 420px;gap:20px}
+
+    .card{background:rgba(255,255,255,0.02);padding:18px;border-radius:12px;backdrop-filter:blur(var(--glass-blur));box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+
+    h2{margin:0 0 6px 0;font-size:16px}
+    .muted{color:var(--muted);font-size:13px}
+
+    pre#info{margin-top:12px;padding:18px;border-radius:12px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));font-size:13px;border-left:6px solid var(--accent1);overflow:auto;transition:box-shadow .18s, transform .18s}
+    pre.refresh{box-shadow:0 30px 60px rgba(124,58,237,0.18);transform:translateY(-6px)}
+
+    .meta-row{display:flex;gap:12px;align-items:center}
+
+    .env-pill{padding:8px 12px;border-radius:999px;font-weight:800;background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));}
+    .env-dev{color:#0369a1;background:linear-gradient(90deg,#e0f2fe11,#dbeafe11);}
+    .env-staging{color:#78350f;background:linear-gradient(90deg,#fffbeb11,#ffedd511);}
+    .env-prod{color:#7f1d1d;background:linear-gradient(90deg,#fee2e211,#fecaca11);}
+
+    .controls{margin-left:auto;display:flex;gap:8px;align-items:center}
+    button.primary{background:linear-gradient(90deg,var(--accent1),var(--accent2));border:0;padding:10px 14px;border-radius:10px;font-weight:700;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:8px;color:var(--muted);cursor:pointer}
+
+    /* sidebar (demo guide) */
+    .sidebar{position:relative;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01));height:100%}
+    .guide-title{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+    .steps{display:flex;flex-direction:column;gap:10px}
+    .step{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:10px}
+    .step .dot{width:14px;height:14px;border-radius:999px;background:rgba(255,255,255,0.06);margin-top:3px}
+    .step.active{background:linear-gradient(90deg, rgba(124,58,237,0.08), rgba(6,182,212,0.03));box-shadow:0 8px 30px rgba(124,58,237,0.06)}
+    .step.done .dot{background:linear-gradient(90deg,var(--success),#34d399)}
+    .step h4{margin:0;font-size:14px}
+    .step p{margin:0;color:var(--muted);font-size:12px}
+
+    /* deployment wave effect */
+    .wave{position:absolute;left:0;right:0;height:6px;background:linear-gradient(90deg, rgba(124,58,237,0.3), rgba(6,182,212,0.18));border-radius:999px;opacity:0;transform:translateY(20px);transition:opacity .45s, transform .45s}
+    .wave.show{opacity:1;transform:translateY(0)}
+
+    /* traffic visualization */
+    .traffic-box{height:200px;border-radius:10px;overflow:hidden;position:relative}
+    canvas#traffic{width:100%;height:100%;display:block}
+
+    .action-row{display:flex;gap:10px;margin-top:14px}
+    .hint{color:var(--muted);font-size:13px;margin-top:10px}
+
+    @media (max-width:980px){ .grid{grid-template-columns:1fr} header{padding:20px} }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="badge-wrap" aria-hidden="true">
+      <div id="badge" class="badge">v —</div>
+    </div>
+
+    <div class="hero">
+      <div class="brand">
+        <div class="title">Canary Traffic - Simulate— Showcase</div>
+        <div class="subtitle">End-to-end demo portal: CI → Build → Deploy → Observe → Shift traffic</div>
+      </div>
+    </div>
+
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+      <button id="toggleGuide" class="ghost" title="Show / Hide Demo Guide">📘 Demo Guide</button>
+      <button id="simulate" class="ghost" title="Simulate a deploy and traffic spike">⚡ Simulate</button>
+      <button id="refresh" class="primary" title="Refresh /info">🔄 Refresh</button>
+    </div>
+  </header>
+
+  <main class="container" role="main">
+    <div class="grid">
+      <!-- LEFT: main interactive area -->
+      <div>
+        <div class="card">
+          <div class="meta-row">
+            <div style="display:flex;flex-direction:column;">
+              <div style="display:flex;gap:12px;align-items:center">
+                <div id="envPill" class="env-pill env-dev">DEV</div>
+                <div class="muted">Endpoints: <code>/healthz</code> <code>/readyz</code> <code>/info</code> <code>/metrics</code></div>
+              </div>
+              <div style="height:8px"></div>
+              <div id="uptime" class="muted">Uptime: —</div>
+            </div>
+
+            <div style="margin-left:auto;text-align:right">
+              <div class="muted">Status</div>
+              <div id="statusLights" style="display:flex;gap:8px;margin-top:8px;justify-content:flex-end">
+                <div id="podLight" title="Pod status" class="dot" style="width:12px;height:12px;border-radius:999px;background:rgba(255,255,255,0.06)"></div>
+                <div id="deployLight" title="Deploy status" class="dot" style="width:12px;height:12px;border-radius:999px;background:rgba(255,255,255,0.06)"></div>
+                <div id="trafficLight" title="Traffic status" class="dot" style="width:12px;height:12px;border-radius:999px;background:rgba(255,255,255,0.06)"></div>
+              </div>
+            </div>
+          </div>
+
+          <div style="height:14px"></div>
+
+          <h2>Live Info</h2>
+          <div class="muted">Data pulled from <code>/info</code> (version, start_time, env, feature flags)</div>
+          <pre id="info">Loading /info...</pre>
+
+          <div class="action-row">
+            <button id="showRaw" class="ghost">Open Raw /info</button>
+            <button id="restartPods" class="ghost">Simulate Restart</button>
+            <div style="flex:1"></div>
+            <button id="applyConfig" class="ghost">Apply Config</button>
+            <button id="promote" class="primary">Promote Canary → Stable</button>
+          </div>
+
+          <div class="hint">Hint: press <kbd>R</kbd> to refresh. Use <strong>Simulate</strong> to fire an animated demo wave.</div>
+        </div>
+
+        <div style="height:18px"></div>
+
+        <!-- Traffic Visualization Card (full replacement) -->
+        <div class="card">
+          <h2>Traffic Visualization</h2>
+          <div class="muted">Simulated Istio traffic boxes — blue = stable, green = canary.</div>
+          <div style="height:12px"></div>
+
+          <!-- Controls -->
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:8px;">
+            <div style="flex:1; display:flex; gap:8px; align-items:center;">
+              <div class="muted">Intensity</div>
+              <input id="intensity" type="range" min="5" max="600" value="80" style="flex:1" />
+              <div id="intVal" class="muted" style="width:36px;text-align:right">80</div>
+            </div>
+
+            <div style="width:20px"></div>
+
+            <div style="flex:0 0 320px; display:flex; gap:8px; align-items:center;">
+              <div class="muted">Canary weight</div>
+              <input id="canaryWeight" type="range" min="0" max="100" value="0" style="flex:1" />
+              <div id="canaryPct" class="muted" style="width:40px;text-align:right">0%</div>
+            </div>
+          </div>
+
+          <div class="traffic-box" style="height:200px;border-radius:10px;overflow:hidden;position:relative;background: linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));">
+            <canvas id="trafficCanvasBoxes" width="800" height="200" style="display:block;width:100%;height:100%"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- RIGHT: demo guide sidebar -->
+      <aside id="guide" class="sidebar card" aria-hidden="false">
+        <div class="guide-title"><strong>Demo Guide</strong><div style="flex:1"></div><small class="muted">Follow steps — they light up automatically</small></div>
+        <div class="steps">
+          <div id="step1" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>1. Show App & Endpoints</h4>
+              <p>Explain UI: version badge, env pill, uptime, /info and /metrics.</p>
+            </div>
+          </div>
+
+          <div id="step2" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>2. Trigger Code Change</h4>
+              <p>Commit & push — CI builds image & deploys. Show GitHub Actions logs.</p>
+            </div>
+          </div>
+
+          <div id="step3" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>3. Watch Rollout</h4>
+              <p>kubectl get pods - show new pods, readiness gating traffic.</p>
+            </div>
+          </div>
+
+          <div id="step4" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>4. Refresh UI</h4>
+              <p>Observe version badge update, JSON animate & uptime reset.</p>
+            </div>
+          </div>
+
+          <div id="step5" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>5. Canary / Traffic Shift</h4>
+              <p>Use traffic visualization to show how traffic moves to new pods.</p>
+            </div>
+          </div>
+
+          <div id="step6" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>6. Config Change</h4>
+              <p>Edit ConfigMap / feature flags & restart to demonstrate config rollout.</p>
+            </div>
+          </div>
+
+          <div id="step7" class="step">
+            <div class="dot"></div>
+            <div>
+              <h4>7. Observability</h4>
+              <p>Show /metrics, Grafana, and alerts — tie back to the pipeline.</p>
+            </div>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+        <div class="wave" id="wave"></div>
+      </aside>
+    </div>
+  </main>
+
+  <script>
+    /* ---------- Utility helpers ---------- */
+    const $ = id => document.getElementById(id);
+    let infoCache = null;
+    function pad(n){return String(n).padStart(2,'0');}
+
+    /* ---------- Fetch /info and update UI ---------- */
+    async function fetchInfo(flash=true){
+      try{
+        const res = await fetch('/info', {cache:'no-store'});
+        if(!res.ok) throw new Error('HTTP '+res.status);
+        const j = await res.json();
+        infoCache = j;
+        $('info').textContent = JSON.stringify(j, null, 2);
+
+        // version
+        const ver = j.version || j.appVersion || j.ver || 'dev';
+        $('badge').textContent = 'v ' + ver;
+        $('badge').classList.add('glow');
+        setTimeout(()=>$('badge').classList.remove('glow'), 900);
+
+        // env
+        const env = (j.env && (j.env.ENVIRONMENT || j.env.ENV || j.env.environment)) || j.Environment || j.environment || 'dev';
+        const envVal = env.toString();
+        const envPill = $('envPill'); envPill.textContent = envVal.toUpperCase();
+        envPill.className = 'env-pill ' + (envVal.toLowerCase().includes('prod')? 'env-prod' : envVal.toLowerCase().includes('stag')? 'env-staging' : 'env-dev');
+
+        // uptime
+        setupUptime(j.start_time || j.startTime || j.StartTime || j.start);
+
+        // highlight JSON
+        if(flash){ $('info').classList.add('refresh'); setTimeout(()=>$('info').classList.remove('refresh'), 900); }
+
+        // mark steps: step1 completed once info loads
+        markStepDone('step1');
+
+      }catch(e){ $('info').textContent = 'Error fetching /info: ' + e; console.error(e); }
+    }
+
+    /* ---------- Uptime ---------- */
+    let uptimeTicker = null;
+    function setupUptime(start){
+      if(!start){ $('uptime').textContent = 'Uptime: unknown'; return; }
+      const s = new Date(start);
+      if(isNaN(s)){ $('uptime').textContent='Uptime: invalid'; return; }
+      if(uptimeTicker) clearInterval(uptimeTicker);
+      function tick(){
+        const d = Math.floor((Date.now() - s)/1000);
+        const days = Math.floor(d/86400); const hrs = Math.floor(d%86400/3600); const mins = Math.floor(d%3600/60); const secs = d%60;
+        $('uptime').textContent = `Uptime: ${days}d ${pad(hrs)}h:${pad(mins)}m:${pad(secs)}s`;
+      }
+      tick(); uptimeTicker = setInterval(tick,1000);
+    }
+
+    /* ---------- Steps UI ---------- */
+    function markStepActive(id){ document.querySelectorAll('.step').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+    function markStepDone(id){ $(id).classList.add('done'); }
+
+    /* ---------- Simulate deploy & wave ---------- */
+    function showWave(){ const w = $('wave'); w.classList.add('show'); setTimeout(()=>w.classList.remove('show'), 2200); }
+
+    /* ---------- Traffic boxes visualization (clear squares) ---------- */
+    (function boxesTraffic(){
+      const canvas = document.getElementById('trafficCanvasBoxes');
+      const ctx = canvas.getContext('2d');
+      const intensity = document.getElementById('intensity');
+      const intVal = document.getElementById('intVal');
+      const canary = document.getElementById('canaryWeight');
+      const canaryPct = document.getElementById('canaryPct');
+
+      function resize() {
+        canvas.width = Math.floor(canvas.clientWidth * devicePixelRatio);
+        canvas.height = Math.floor(canvas.clientHeight * devicePixelRatio);
+        ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      let boxes = [];
+      let maxBoxes = parseInt(intensity.value, 10);
+      const MAX_LIMIT = 1200;
+
+      function rand(min, max){ return Math.random()*(max-min) + min; }
+      function clamp(v, a, b){ return Math.max(a, Math.min(b, v)); }
+
+      function ensureBoxes(target) {
+        target = clamp(target, 0, MAX_LIMIT);
+        while (boxes.length < target) {
+          boxes.push({
+            x: rand(8, canvas.clientWidth - 8),
+            y: rand(8, canvas.clientHeight - 8),
+            size: Math.round(rand(8, 18)),
+            color: Math.random()<0.02 ? 'accent' : 'blue',
+            alpha: 1
+          });
+        }
+        while (boxes.length > target) boxes.pop();
+      }
+
+      function applyCanaryWeight(weightPercent) {
+        const total = boxes.length || 1;
+        const greenTarget = Math.round(total * (weightPercent / 100));
+        const idx = boxes.map((_,i)=>i);
+        for (let i = idx.length - 1; i > 0; i--) {
+          const r = Math.floor(Math.random()*(i+1)); [idx[i], idx[r]] = [idx[r], idx[i]];
+        }
+        for (let i = 0; i < idx.length; i++){
+          const b = boxes[idx[i]];
+          if (!b) continue;
+          if (i < greenTarget) {
+            b.color = 'green';
+            b.alpha = clamp(b.alpha + 0.06, 0.6, 1.0);
+          } else {
+            b.color = 'blue';
+            b.alpha = clamp(b.alpha - 0.06, 0.2, 1.0);
+          }
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0,0,canvas.clientWidth, canvas.clientHeight);
+        ctx.fillStyle = 'rgba(255,255,255,0.01)';
+        ctx.fillRect(0,0,canvas.clientWidth, canvas.clientHeight);
+
+        for (let i = 0; i < boxes.length; i++) {
+          const b = boxes[i];
+          const s = b.size;
+          b.x += Math.sin((i + performance.now()*0.0005)) * 0.15;
+          b.y += Math.cos((i * 0.7 + performance.now()*0.0004)) * 0.12;
+          b.x = clamp(b.x, 6, canvas.clientWidth - 6);
+          b.y = clamp(b.y, 6, canvas.clientHeight - 6);
+
+          let fill = '#2563eb'; // blue stable
+          let stroke = '#1e40af';
+          if (b.color === 'green') { fill = '#16a34a'; stroke = '#166534'; }
+          if (b.color === 'accent') { fill = '#7c3aed'; stroke = '#5b21b6'; }
+
+          ctx.globalAlpha = b.alpha;
+          ctx.fillStyle = fill;
+          ctx.fillRect(b.x - s/2, b.y - s/2, s, s);
+
+          ctx.globalAlpha = clamp(b.alpha, 0.5, 1.0);
+          ctx.lineWidth = Math.max(1, Math.round(s * 0.12));
+          ctx.strokeStyle = stroke;
+          ctx.strokeRect(b.x - s/2 + 0.5, b.y - s/2 + 0.5, s - 1, s - 1);
+          ctx.globalAlpha = 1;
+        }
+        requestAnimationFrame(draw);
+      }
+
+      function rebuild() {
+        maxBoxes = clamp(parseInt(intensity.value,10) || 80, 1, MAX_LIMIT);
+        ensureBoxes(maxBoxes);
+        applyCanaryWeight(parseInt(canary.value,10) || 0);
+        intVal.textContent = maxBoxes;
+      }
+
+      intensity.addEventListener('input', () => { rebuild(); });
+      canary.addEventListener('input', () => {
+        const pct = parseInt(canary.value,10);
+        canaryPct.textContent = pct + '%';
+        applyCanaryWeight(pct);
+      });
+
+      rebuild();
+      draw();
+
+      // Expose to global for external triggers (button promote)
+      window.setCanaryWeight = function(pct){
+        canary.value = clamp(parseInt(pct,10) || 0, 0, 100);
+        canaryPct.textContent = canary.value + '%';
+        applyCanaryWeight(parseInt(canary.value,10));
+      };
+    })();
+
+    /* ---------- Button actions & simulation ---------- */
+    $('refresh').addEventListener('click', ()=>{ fetchInfo(true); });
+    $('toggleGuide').addEventListener('click', ()=>{ const g = $('guide'); const hidden = g.getAttribute('aria-hidden') === 'true'; g.style.display = hidden ? 'block' : 'none'; g.setAttribute('aria-hidden', (!hidden)); });
+
+    $('simulate').addEventListener('click', ()=>{
+      markStepActive('step2');
+      $('deployLight').style.background = 'linear-gradient(90deg,var(--accent1),var(--accent2))';
+      setTimeout(()=>{ markStepDone('step2'); markStepActive('step3'); $('podLight').style.background = 'linear-gradient(90deg,var(--accent1),var(--accent2))'; }, 900);
+      setTimeout(()=>{ markStepDone('step3'); markStepActive('step4'); showWave(); triggerVersionChange(); }, 1600);
+      setTimeout(()=>{ markStepDone('step4'); markStepActive('step5'); $('trafficLight').style.background = 'linear-gradient(90deg,var(--accent1),var(--accent2))'; }, 2500);
+      setTimeout(()=>{ markStepDone('step5'); markStepActive('step6'); }, 3800);
+    });
+
+    $('restartPods').addEventListener('click', ()=>{
+      $('podLight').style.background = 'linear-gradient(90deg,#f59e0b,#f97316)';
+      setTimeout(()=>{$('podLight').style.background = 'linear-gradient(90deg,var(--accent1),var(--accent2))';},1200);
+    });
+
+    $('applyConfig').addEventListener('click', ()=>{
+      markStepActive('step6'); $('info').classList.add('refresh'); setTimeout(()=>$('info').classList.remove('refresh'),900); setTimeout(()=>markStepDone('step6'),1200);
+    });
+
+    $('promote').addEventListener('click', ()=>{
+      markStepActive('step5'); showWave();
+      // increase canary in steps: 0 -> 10 -> 25 -> 50 -> 100
+      let seq = [10,25,50,100];
+      let i=0;
+      function step(){
+        if(i>=seq.length) return;
+        window.setCanaryWeight(seq[i]);
+        i++; setTimeout(step, 900);
+      }
+      step();
+      $('badge').classList.add('glow'); setTimeout(()=>$('badge').classList.remove('glow'),1200);
+    });
+
+    $('showRaw').addEventListener('click', ()=>{ window.open('/info','_blank'); });
+    window.addEventListener('keydown', e=>{ if(e.key.toLowerCase()==='r') fetchInfo(true); if(e.key===' ') { $('simulate').click(); } });
+
+    /* ---------- Trigger a version change animation (for demo) ---------- */
+    function triggerVersionChange(){
+      const old = $('badge').textContent;
+      const newV = 'v ' + (Math.random()>0.5? '1.1.'+Math.floor(Math.random()*90+10) : '2.0.'+Math.floor(Math.random()*30+3));
+      $('badge').textContent = newV;
+      $('badge').classList.add('glow');
+      try{
+        const obj = infoCache ? JSON.parse(JSON.stringify(infoCache)) : {service:'traffic-simulate',version:newV,start_time: new Date().toISOString(), env:{ENVIRONMENT:'staging'}};
+        obj.version = newV;
+        obj.start_time = new Date().toISOString();
+        infoCache = obj;
+        $('info').textContent = JSON.stringify(obj,null,2);
+        setupUptime(obj.start_time);
+      }catch(e){console.error(e)}
+      setTimeout(()=>$('badge').classList.remove('glow'),1400);
+      markStepDone('step4');
+    }
+
+    /* ---------- Initializers ---------- */
+    fetchInfo(true);
+    setInterval(()=>fetchInfo(false), 15000);
+
+    /* ---------- Small helpers ---------- */
+    function markStepActive(id){ document.querySelectorAll('.step').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); }
+    function markStepDone(id){ $(id).classList.add('done'); }
+  </script>
+
+  <!--
+    USAGE NOTES:
+    - Save this file to your repo's static/ as index.html.
+    - The page calls /info to fetch: { service, version, start_time, env: { ENVIRONMENT: "dev" }, ... }
+      Ensure your backend /info returns start_time (ISO) and version. If not available, the UI will simulate visuals.
+    - Canary slider controls the percentage of boxes colored green (canary). Intensity controls total boxes.
+    - You can programmatically set traffic weight with: window.setCanaryWeight(percentage)
+    - Promote button will ramp canary automatically (0→10→25→50→100).
+  -->
+</body>
+</html>
